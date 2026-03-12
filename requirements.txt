@@ -2,11 +2,11 @@ streamlit
 langchain
 langchain-community
 langchain-groq
+langchain-huggingface
+langchain-core
 faiss-cpu
 sentence-transformers
 pypdf
 docx2txt
 pandas
 python-dotenv
-langchain_huggingface
-langchain-chains
