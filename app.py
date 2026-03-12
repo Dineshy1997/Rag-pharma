@@ -9,10 +9,11 @@ from langchain_community.document_loaders import (
 )
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
 from langchain_groq import ChatGroq
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.messages import HumanMessage, AIMessage
 
 st.set_page_config(page_title="RAG Chatbot", layout="wide", initial_sidebar_state="expanded")
 
@@ -128,8 +129,11 @@ MODEL_NAME = "llama-3.3-70b-versatile"
 
 # ── Session defaults ──────────────────────────────────────────────────────────
 DEFAULTS = {
-    "chat_history": [], "vector_store": None, "qa_chain": None,
-    "documents_loaded": [], "memory": None,
+    "chat_history": [],       # list of {"role": "user"/"assistant", "content": str}
+    "lc_history": [],         # list of LangChain HumanMessage/AIMessage for chain
+    "vector_store": None,
+    "qa_chain": None,
+    "documents_loaded": [],
 }
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
@@ -150,23 +154,31 @@ def load_document(f):
 
 def build_vector_store(docs):
     chunks = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).split_documents(docs)
-    emb = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={"device":"cpu"})
+    emb = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={"device": "cpu"})
     return FAISS.from_documents(chunks, emb)
 
 def build_qa_chain(vs):
     llm = ChatGroq(groq_api_key=GROQ_API_KEY, model_name=MODEL_NAME, temperature=0.1, max_tokens=2048)
-    mem = ConversationBufferMemory(memory_key="chat_history", return_messages=True, output_key="answer")
-    prompt = PromptTemplate(
-        input_variables=["context","question","chat_history"],
-        template="You are a precise AI assistant. Answer using only the provided context. If the answer is not in the context, state that clearly.\n\nContext:\n{context}\n\nConversation:\n{chat_history}\n\nQuestion: {question}\n\nAnswer:"
-    )
-    chain = ConversationalRetrievalChain.from_llm(
-        llm=llm, retriever=vs.as_retriever(search_kwargs={"k":4}),
-        memory=mem, return_source_documents=True,
-        combine_docs_chain_kwargs={"prompt": prompt}
-    )
-    st.session_state.memory = mem
-    return chain
+    retriever = vs.as_retriever(search_kwargs={"k": 4})
+
+    # Prompt to rephrase question considering chat history
+    condense_prompt = ChatPromptTemplate.from_messages([
+        MessagesPlaceholder("chat_history"),
+        ("human", "{input}"),
+        ("human", "Given the conversation above, rephrase the follow-up question to be standalone."),
+    ])
+    history_aware_retriever = create_history_aware_retriever(llm, retriever, condense_prompt)
+
+    # Prompt to answer using retrieved context
+    qa_prompt = ChatPromptTemplate.from_messages([
+        ("system",
+         "You are a precise AI assistant. Answer using only the provided context. "
+         "If the answer is not in the context, state that clearly.\n\nContext:\n{context}"),
+        MessagesPlaceholder("chat_history"),
+        ("human", "{input}"),
+    ])
+    combine_chain = create_stuff_documents_chain(llm, qa_prompt)
+    return create_retrieval_chain(history_aware_retriever, combine_chain)
 
 def render_chat():
     html = '<div class="chat-win">'
@@ -178,10 +190,8 @@ def render_chat():
     html += "</div>"
     st.markdown(html, unsafe_allow_html=True)
 
-
-
 # ══════════════════════════════════════
-# PAGE 2 — SIDEBAR
+# SIDEBAR
 # ══════════════════════════════════════
 def render_sidebar():
     with st.sidebar:
@@ -202,6 +212,7 @@ def render_sidebar():
                     st.session_state.qa_chain = build_qa_chain(vs)
                     st.session_state.documents_loaded = names
                     st.session_state.chat_history = []
+                    st.session_state.lc_history = []
                     st.success(f"{len(names)} document(s) indexed.")
                 else:
                     st.error("No text could be extracted.")
@@ -214,7 +225,7 @@ def render_sidebar():
         st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
         if st.button("Clear Conversation", key="clear_btn"):
             st.session_state.chat_history = []
-            if st.session_state.memory: st.session_state.memory.clear()
+            st.session_state.lc_history = []
             st.rerun()
 
         st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
@@ -224,7 +235,7 @@ def render_sidebar():
             st.markdown('<span class="status-pill pill-pending">Awaiting Documents</span>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════
-# PAGE 2 — CHAT
+# CHAT PAGE
 # ══════════════════════════════════════
 def page_chat():
     render_sidebar()
@@ -254,24 +265,30 @@ def page_chat():
         st.session_state.chat_history.append({"role": "user", "content": q})
         with st.spinner("Generating response..."):
             try:
-                result = st.session_state.qa_chain.invoke({"question": q})
+                result = st.session_state.qa_chain.invoke({
+                    "input": q,
+                    "chat_history": st.session_state.lc_history,
+                })
                 answer = result.get("answer", "No answer found.")
-                sources = result.get("source_documents", [])
+                sources = result.get("context", [])
             except Exception as e:
                 answer = f"Error: {str(e)}"; sources = []
+
+        # Update LangChain message history
+        st.session_state.lc_history.append(HumanMessage(content=q))
+        st.session_state.lc_history.append(AIMessage(content=answer))
+
         st.session_state.chat_history.append({"role": "assistant", "content": answer})
         if sources:
-            src_html = ""
             seen, unique = set(), []
             for d in sources:
-                k = (d.metadata.get("source_name","Unknown"), d.page_content[:180])
+                k = (d.metadata.get("source_name", "Unknown"), d.page_content[:180])
                 if k not in seen: seen.add(k); unique.append(k)
             st.session_state["last_sources"] = unique
         st.rerun()
 
     if st.session_state.chat_history:
         render_chat()
-        # Show sources from last response
         if "last_sources" in st.session_state and st.session_state.last_sources:
             with st.expander(f"Source references ({len(st.session_state.last_sources)})", expanded=False):
                 for name, snip in st.session_state.last_sources:
@@ -279,7 +296,6 @@ def page_chat():
     else:
         st.markdown('<div class="chat-win"><div class="empty-st"><div class="empty-title">Ready to answer questions</div><div class="empty-sub">Your documents have been indexed. Type a question below.</div></div></div>', unsafe_allow_html=True)
 
-    # Input area with auto-clear
     if "input_key_counter" not in st.session_state:
         st.session_state.input_key_counter = 0
 
