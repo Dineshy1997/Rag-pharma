@@ -9,3 +9,4 @@ docx2txt
 pandas
 python-dotenv
 langchain_huggingface
+langchain.chains
