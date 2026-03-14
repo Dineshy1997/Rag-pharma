@@ -231,7 +231,6 @@ section[data-testid="stSidebar"] > div { padding: 0 !important; }
 }
 
 /* === Streamlit button overrides === */
-/* Process Documents Button */
 .stButton > button {
     border-radius: 8px !important;
     font-weight: 600 !important;
@@ -241,9 +240,8 @@ section[data-testid="stSidebar"] > div { padding: 0 !important; }
     width: 100% !important;
 }
 
-/* Specific buttons by key */
 div[data-testid="stSidebar"] button[key="process_btn"] {
-    background-color: #7dabdb !important; /* Steel blue from image */
+    background-color: #7dabdb !important;
     color: white !important;
     border: none !important;
 }
@@ -302,8 +300,8 @@ button[key="send_btn"] {
 
 /* Markdown Styling in Light Theme */
 .bubble.bot p { margin: 8px 0; }
-.bubble.bot h1, .bubble.bot h2, .bubble.bot h3, .bubble.bot h4 { 
-    color: #0f172a; margin: 16px 0 8px; font-weight: 700; 
+.bubble.bot h1, .bubble.bot h2, .bubble.bot h3, .bubble.bot h4 {
+    color: #0f172a; margin: 16px 0 8px; font-weight: 700;
 }
 .bubble.bot code {
     background: #f1f5f9;
@@ -328,11 +326,11 @@ button[key="send_btn"] {
 # ── Session state defaults ────────────────────────────────────────────────────
 def _init_state():
     if "files" not in st.session_state:
-        st.session_state.files = []        # list of dicts: {name, size, type, content, extracted_text}
+        st.session_state.files = []
     if "status" not in st.session_state:
-        st.session_state.status = "awaiting"   # awaiting | processing | ready
+        st.session_state.status = "awaiting"
     if "messages" not in st.session_state:
-        st.session_state.messages = []     # list of dicts: {role, content}
+        st.session_state.messages = []
     if "user_input" not in st.session_state:
         st.session_state.user_input = ""
 
@@ -369,7 +367,6 @@ def extract_text(name: str, content: bytes) -> str:
             return "\n\n".join(parts) or "[No text found in PDF]"
 
         if ext in ("txt", "csv"):
-            # Try utf-8, fall back to latin-1
             try:
                 return content.decode("utf-8")
             except UnicodeDecodeError:
@@ -380,7 +377,6 @@ def extract_text(name: str, content: bytes) -> str:
             doc = Document(io.BytesIO(content))
             return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
-        # Fallback
         try:
             return content.decode("utf-8")
         except Exception:
@@ -410,7 +406,6 @@ def call_groq(messages: list) -> str:
 
 def markdown_to_html(md: str) -> str:
     """Minimal markdown → HTML for chat bubbles (headings, bold, code, bullets, blockquote)."""
-    # Escape HTML first to prevent injection, then apply markdown
     import html
     s = html.escape(md)
 
@@ -424,25 +419,29 @@ def markdown_to_html(md: str) -> str:
     s = re.sub(r'\*(.+?)\*', r'<em>\1</em>', s)
     s = re.sub(r'_(.+?)_', r'<em>\1</em>', s)
 
-    # Inline code (use &#96; since backtick is escaped as &#96;)
+    # Inline code
     s = re.sub(r'`([^`]+)`', r'<code>\1</code>', s)
 
     # Blockquote
     s = re.sub(r'^&gt; (.+)$', r'<blockquote>\1</blockquote>', s, flags=re.MULTILINE)
 
+    # ── FIX: extract regex patterns into variables to avoid backslash in f-string ──
+
     # Bullet lists (lines starting with - or *)
+    bullet_prefix = r'^[-*]\s+'
     def list_block(match):
         items = match.group(0).splitlines()
-        li = "".join(f"<li>{re.sub(r'^[-*]\\s+', '', item)}</li>" for item in items)
+        li = "".join(f"<li>{re.sub(bullet_prefix, '', item)}</li>" for item in items)
         return f"<ul>{li}</ul>"
     s = re.sub(r'(^[-*] .+$\n?)+', list_block, s, flags=re.MULTILINE)
 
     # Numbered lists
+    numbered_prefix = r'^\d+\.\s+'
     def ol_block(match):
         items = match.group(0).splitlines()
-        li = "".join(f"<li>{re.sub(r'^\\d+\\.\\s+', '', item)}</li>" for item in items)
+        li = "".join(f"<li>{re.sub(numbered_prefix, '', item)}</li>" for item in items)
         return f"<ol>{li}</ol>"
-    s = re.sub(r'(^\\d+\\. .+$\\n?)+', ol_block, s, flags=re.MULTILINE)
+    s = re.sub(r'(^\d+\. .+$\n?)+', ol_block, s, flags=re.MULTILINE)
 
     # Horizontal rule
     s = re.sub(r'^---+$', r'<hr>', s, flags=re.MULTILINE)
