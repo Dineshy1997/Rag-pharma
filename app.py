@@ -32,7 +32,7 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; font-size: 14px; }
+html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; font-size: 13px; }
 
 .stApp { background-color: #f0f4f8; color: #1e293b; }
 
@@ -59,7 +59,7 @@ section[data-testid="stSidebar"] > div {
     border-bottom: 1px solid #eef1f6;
 }
 .sidebar-brand h1 {
-    font-size: 1rem !important;
+    font-size: 0.9rem !important;
     font-weight: 800 !important;
     color: #0f172a !important;
     margin: 0 !important;
@@ -266,10 +266,10 @@ section[data-testid="stSidebar"] > div {
 .avatar.bot  { background: #eff6ff; border: 1.5px solid #bfdbfe; }
 .avatar.user { background: #f1f5f9; border: 1.5px solid #e2e8f0; }
 .bubble {
-    border-radius: 12px;
-    padding: 10px 14px;
-    font-size: 0.82rem;
-    line-height: 1.6;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    line-height: 1.55;
     max-width: 85%;
 }
 .bubble.bot {
@@ -311,9 +311,9 @@ section[data-testid="stSidebar"] > div {
 .stTextInput input {
     background: #f8fafc !important;
     border: 1.5px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    padding: 12px 16px !important;
-    font-size: 0.89rem !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    font-size: 0.85rem !important;
     color: #1e293b !important;
     transition: border-color 0.15s, box-shadow 0.15s !important;
 }
@@ -667,21 +667,21 @@ placeholder = (
 )
 
 st.markdown('<div class="input-bar-wrap"><div class="input-inner">', unsafe_allow_html=True)
-col1, col2 = st.columns([12, 1])
-with col1:
-    user_text = st.text_input(
-        label="query",
-        placeholder=placeholder,
-        disabled=not is_ready,
-        label_visibility="collapsed",
-        key=f"chat_input_{st.session_state.input_key}",  # ← cycles to clear field
-    )
-with col2:
-    send = st.button(
-        "➤",
-        disabled=not is_ready or not (user_text or "").strip(),
-        key="send_btn",
-    )
+
+with st.form(key=f"chat_form_{st.session_state.input_key}", clear_on_submit=False):
+    col1, col2 = st.columns([12, 1])
+    with col1:
+        user_text = st.text_input(
+            label="query",
+            placeholder=placeholder,
+            disabled=not is_ready,
+            label_visibility="collapsed",
+        )
+    with col2:
+        send = st.form_submit_button(
+            "➤",
+            disabled=not is_ready,
+        )
 st.markdown("</div></div>", unsafe_allow_html=True)
 
 # ── Handle send ───────────────────────────────────────────────────────────────
