@@ -23,8 +23,8 @@ Your responsibilities:
 - For CAPAs: clearly distinguish Root Cause Analysis vs. Corrective Actions vs. Preventive Actions.
 - For SOPs: provide numbered step-by-step guidance when asked procedural questions.
 - Flag any values outside "Acceptable Range" defined in the document with ⚠️ DEVIATION ALERT.
-- Always cite which document and section your answer is derived from.
-- Do not fabricate data. If the answer is not in the provided documents, state: "This information is not present in the provided records."
+- **CRITICAL**: Always cite the exact source filename for every piece of information provided. Use the format [Source: filename.ext].
+- DO NOT answer from general knowledge. If the answer is not in the provided documents, state: "This information is not present in the provided records."
 - Maintain a professional, regulatory-focused, and precise tone at all times."""
 
 # ── Custom CSS ────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; font-size: 14px; }
 
 .stApp { background-color: #f0f4f8; color: #1e293b; }
 
@@ -59,7 +59,7 @@ section[data-testid="stSidebar"] > div {
     border-bottom: 1px solid #eef1f6;
 }
 .sidebar-brand h1 {
-    font-size: 1.15rem !important;
+    font-size: 1rem !important;
     font-weight: 800 !important;
     color: #0f172a !important;
     margin: 0 !important;
@@ -106,11 +106,11 @@ section[data-testid="stSidebar"] > div {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 9px;
-    padding: 9px 12px;
+    padding: 6px 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin: 0 14px 7px 14px;
+    gap: 8px;
+    margin: 0 14px 5px 14px;
 }
 .file-name-text {
     font-size: 0.79rem;
@@ -127,9 +127,9 @@ section[data-testid="stSidebar"] > div {
 .stButton > button {
     border-radius: 9px !important;
     font-weight: 600 !important;
-    font-size: 0.84rem !important;
+    font-size: 0.75rem !important;
     transition: all 0.18s !important;
-    height: 44px !important;
+    height: 38px !important;
     width: 100% !important;
 }
 
@@ -180,14 +180,19 @@ section[data-testid="stSidebar"] > div {
 .main-header {
     background: #ffffff;
     border-bottom: 1px solid #e2e8f0;
-    padding: 17px 40px;
+    padding: 12px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: sticky;
+    position: fixed;
     top: 0;
-    z-index: 100;
+    left: 290px;
+    right: 0;
+    z-index: 1000;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.main-chat-container {
+    padding-top: 70px;
 }
 .main-header h2 {
     font-size: 1.25rem;
@@ -217,7 +222,7 @@ section[data-testid="stSidebar"] > div {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: calc(100vh - 140px);
+    min-height: 400px;
     padding: 20px;
 }
 .step-cards {
@@ -261,11 +266,11 @@ section[data-testid="stSidebar"] > div {
 .avatar.bot  { background: #eff6ff; border: 1.5px solid #bfdbfe; }
 .avatar.user { background: #f1f5f9; border: 1.5px solid #e2e8f0; }
 .bubble {
-    border-radius: 14px;
-    padding: 12px 16px;
-    font-size: 0.89rem;
-    line-height: 1.65;
-    max-width: 80%;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    max-width: 85%;
 }
 .bubble.bot {
     background: #ffffff;
@@ -319,6 +324,17 @@ section[data-testid="stSidebar"] > div {
 }
 .stTextInput input::placeholder { color: #94a3b8 !important; }
 
+/* Sidebar Footer */
+.sidebar-footer {
+    position: fixed;
+    bottom: 0;
+    width: 290px;
+    background: #ffffff;
+    border-top: 1px solid #eef1f6;
+    padding: 10px 0;
+    z-index: 100;
+}
+
 /* Send button — target last column */
 div[data-testid="column"]:last-child .stButton > button {
     background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
@@ -335,6 +351,13 @@ div[data-testid="column"]:last-child .stButton > button:disabled {
     background: #e2e8f0 !important;
     color: #94a3b8 !important;
     box-shadow: none !important;
+}
+
+/* Sidebar files container */
+.sidebar-files-container {
+    max-height: calc(100vh - 380px);
+    overflow-y: auto;
+    padding-bottom: 10px;
 }
 
 /* Scrollbar */
@@ -398,8 +421,8 @@ def build_context(files: list) -> str:
     for f in files:
         doc_type = detect_doc_type(f["name"])
         text = f.get("extracted_text") or "[No text extracted]"
-        truncated = text[:6000] + "\n...[truncated]" if len(text) > 6000 else text
-        parts.append(f"=== {doc_type}: {f['name']} ===\n{truncated}")
+        truncated = text[:15000] + "\n...[truncated]" if len(text) > 15000 else text
+        parts.append(f"### DOCUMENT: {f['name']} (Type: {doc_type}) ###\n{truncated}\n### END DOCUMENT: {f['name']} ###")
     return "\n\n".join(parts)
 
 def call_groq(messages: list) -> str:
@@ -480,6 +503,7 @@ with st.sidebar:
             f'<span class="sidebar-section-label">Queued ({len(st.session_state.files)})</span>',
             unsafe_allow_html=True,
         )
+        st.markdown('<div class="sidebar-files-container">', unsafe_allow_html=True)
         to_remove = []
         for i, f in enumerate(st.session_state.files):
             doc_type     = detect_doc_type(f["name"])
@@ -494,6 +518,7 @@ with st.sidebar:
             </div>""", unsafe_allow_html=True)
             if st.button("✕", key=f"del_{i}", help=f"Remove {f['name']}"):
                 to_remove.append(i)
+        st.markdown('</div>', unsafe_allow_html=True)
         for idx in reversed(to_remove):
             st.session_state.files.pop(idx)
         if to_remove:
@@ -502,7 +527,8 @@ with st.sidebar:
     # Spacer to push buttons down
     st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
 
-    # Buttons
+    # Buttons and Status in Fixed Footer
+    st.markdown('<div class="sidebar-footer">', unsafe_allow_html=True)
     with st.container():
         st.markdown("<div style='padding: 0 14px 6px 14px;'>", unsafe_allow_html=True)
         can_process = len(st.session_state.files) > 0 and st.session_state.status == "awaiting"
@@ -529,6 +555,7 @@ with st.sidebar:
             unsafe_allow_html=True,
         )
         st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
 # PROCESSING TRIGGER
@@ -569,6 +596,7 @@ if st.session_state.status == "processing":
 # ════════════════════════════════════════════════════════════════════════════════
 # MAIN AREA
 # ════════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="main-chat-container">', unsafe_allow_html=True)
 st.markdown("""
 <div class="main-header">
     <div>
@@ -680,3 +708,4 @@ if send and is_ready and (user_text or "").strip():
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.session_state.input_key += 1   # ← increment clears the text input on rerun
     st.rerun()
+st.markdown('</div>', unsafe_allow_html=True) # closing main-chat-container
