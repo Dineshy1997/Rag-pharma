@@ -27,7 +27,7 @@ Your responsibilities:
 - DO NOT answer from general knowledge. If the answer is not in the provided documents, state: "This information is not present in the provided records."
 - Maintain a professional, regulatory-focused, and precise tone at all times."""
 
-# ── Custom CSS ────────────────────────────────────────────────────────────────
+# ── Custom CSS & JavaScript for Complete Watermark Removal ────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -36,36 +36,73 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; font-s
 
 .stApp { background-color: #f0f4f8; color: #1e293b; }
 
-/* ════ HIDE STREAMLIT WATERMARK & BRANDING ════ */
-#MainMenu { visibility: hidden !important; }
-footer { visibility: hidden !important; }
-header { visibility: hidden !important; }
+/* ════════════════════════════════════════════════════════════════════════════
+   COMPLETE STREAMLIT WATERMARK & BRANDING REMOVAL
+   ════════════════════════════════════════════════════════════════════════════ */
 
-/* Hide "Made with Streamlit" */
+/* Hide main menu, footer, and header */
+#MainMenu { visibility: hidden !important; display: none !important; }
+footer { visibility: hidden !important; display: none !important; }
+header { visibility: hidden !important; display: none !important; }
+
+/* Remove "Made with Streamlit" footer */
 footer:after {
     content: '' !important;
     display: none !important;
+    visibility: hidden !important;
+}
+
+/* Hide all footer elements */
+footer * {
+    display: none !important;
+    visibility: hidden !important;
 }
 
 /* Hide deploy button */
-.stDeployButton { display: none !important; }
+.stDeployButton { display: none !important; visibility: hidden !important; }
 
-/* Hide Streamlit branding */
-[data-testid="stToolbar"] { display: none !important; }
-[data-testid="stDecoration"] { display: none !important; }
-[data-testid="stStatusWidget"] { display: none !important; }
+/* Hide Streamlit branding and toolbar */
+[data-testid="stToolbar"] { display: none !important; visibility: hidden !important; }
+[data-testid="stDecoration"] { display: none !important; visibility: hidden !important; }
+[data-testid="stStatusWidget"] { display: none !important; visibility: hidden !important; }
 
 /* Hide hamburger menu */
-button[kind="header"] { display: none !important; }
+button[kind="header"] { display: none !important; visibility: hidden !important; }
+.css-14xtw13.e8zbici0 { display: none !important; }
 
 /* Hide "Manage app" button */
-[data-testid="manage-app-button"] { display: none !important; }
+[data-testid="manage-app-button"] { display: none !important; visibility: hidden !important; }
 
-/* Additional watermark removal */
-.viewerBadge_container__1QSob { display: none !important; }
-.styles_viewerBadge__1yB5_ { display: none !important; }
-.viewerBadge_link__1S137 { display: none !important; }
-.viewerBadge_text__1JaDK { display: none !important; }
+/* Additional watermark removal - all variations */
+.viewerBadge_container__1QSob { display: none !important; visibility: hidden !important; }
+.styles_viewerBadge__1yB5_ { display: none !important; visibility: hidden !important; }
+.viewerBadge_link__1S137 { display: none !important; visibility: hidden !important; }
+.viewerBadge_text__1JaDK { display: none !important; visibility: hidden !important; }
+.viewerBadge_container__r5tak { display: none !important; visibility: hidden !important; }
+
+/* Hide any element containing "streamlit" text */
+a[href*="streamlit"] { display: none !important; visibility: hidden !important; }
+
+/* Hide bottom-right corner elements */
+.styles_viewerBadge__CiemM { display: none !important; visibility: hidden !important; }
+
+/* Catch-all for footer variations */
+footer, .footer, [class*="footer"] { 
+    display: none !important; 
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Hide settings and menu icons */
+[data-testid="stHeader"] { display: none !important; }
+.css-18ni7ap.e8zbici2 { display: none !important; }
+.css-1dp5vir.e8zbici1 { display: none !important; }
+
+/* Additional targeting for corner badges */
+div[class*="viewerBadge"] { display: none !important; }
+div[class*="ViewerBadge"] { display: none !important; }
 
 .block-container {
     padding-top: 0 !important;
@@ -395,6 +432,48 @@ div[data-testid="column"]:last-child .stButton > button:disabled {
 ::-webkit-scrollbar-track { background: #f8fafc; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 </style>
+
+<script>
+// JavaScript to aggressively remove watermark elements
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to remove watermark elements
+    function removeWatermarks() {
+        // Remove footer
+        const footers = document.querySelectorAll('footer');
+        footers.forEach(footer => footer.remove());
+        
+        // Remove elements containing "streamlit" in href
+        const streamlitLinks = document.querySelectorAll('a[href*="streamlit"]');
+        streamlitLinks.forEach(link => link.remove());
+        
+        // Remove viewer badge
+        const badges = document.querySelectorAll('[class*="viewerBadge"], [class*="ViewerBadge"]');
+        badges.forEach(badge => badge.remove());
+        
+        // Remove toolbar and menu
+        const toolbar = document.querySelector('[data-testid="stToolbar"]');
+        if (toolbar) toolbar.remove();
+        
+        const header = document.querySelector('[data-testid="stHeader"]');
+        if (header) header.remove();
+        
+        const mainMenu = document.querySelector('#MainMenu');
+        if (mainMenu) mainMenu.remove();
+    }
+    
+    // Run immediately
+    removeWatermarks();
+    
+    // Run again after a short delay to catch dynamically loaded elements
+    setTimeout(removeWatermarks, 100);
+    setTimeout(removeWatermarks, 500);
+    setTimeout(removeWatermarks, 1000);
+    
+    // Set up a mutation observer to catch any new watermarks
+    const observer = new MutationObserver(removeWatermarks);
+    observer.observe(document.body, { childList: true, subtree: true });
+});
+</script>
 """, unsafe_allow_html=True)
 
 # ── Session state defaults ────────────────────────────────────────────────────
