@@ -36,7 +36,37 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; font-s
 
 .stApp { background-color: #f0f4f8; color: #1e293b; }
 
-#MainMenu, footer, header { visibility: hidden; }
+/* ════ HIDE STREAMLIT WATERMARK & BRANDING ════ */
+#MainMenu { visibility: hidden !important; }
+footer { visibility: hidden !important; }
+header { visibility: hidden !important; }
+
+/* Hide "Made with Streamlit" */
+footer:after {
+    content: '' !important;
+    display: none !important;
+}
+
+/* Hide deploy button */
+.stDeployButton { display: none !important; }
+
+/* Hide Streamlit branding */
+[data-testid="stToolbar"] { display: none !important; }
+[data-testid="stDecoration"] { display: none !important; }
+[data-testid="stStatusWidget"] { display: none !important; }
+
+/* Hide hamburger menu */
+button[kind="header"] { display: none !important; }
+
+/* Hide "Manage app" button */
+[data-testid="manage-app-button"] { display: none !important; }
+
+/* Additional watermark removal */
+.viewerBadge_container__1QSob { display: none !important; }
+.styles_viewerBadge__1yB5_ { display: none !important; }
+.viewerBadge_link__1S137 { display: none !important; }
+.viewerBadge_text__1JaDK { display: none !important; }
+
 .block-container {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
