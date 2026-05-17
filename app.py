@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "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"
 MODEL = "llama-3.3-70b-versatile"
 
 SYSTEM_PROMPT = """You are a Senior Pharmaceutical Compliance Agent with deep expertise in GMP, FDA 21 CFR Part 211, ICH guidelines, and pharmaceutical manufacturing regulations.
